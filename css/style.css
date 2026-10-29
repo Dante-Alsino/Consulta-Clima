@@ -721,4 +721,126 @@ a:hover {
 	margin-top: var(--space-2xs);
 }
 
+/* ==========================================================================
+   FEEDBACKS DE ESTADO, ANIMAÇÕES E ACESSIBILIDADE VISUAL (CARD 07)
+   Requisito RF08 e Padrões de Acessibilidade W3C
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Banner de Status Assíncrono (.status-banner)
+   -------------------------------------------------------------------------- */
+.status-banner {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	padding: var(--space-sm) var(--space-md);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-sm);
+	line-height: var(--line-height-tight);
+	border: 1px solid transparent;
+	transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.status-banner[hidden] {
+	display: none !important;
+}
+
+.status-banner__text {
+	flex: 1;
+	margin: 0;
+}
+
+/* Modificadores de Estado */
+.status--info {
+	background-color: var(--color-status-info-bg);
+	border-color: var(--color-status-info-border);
+	color: var(--color-status-info-text);
+}
+
+.status--success {
+	background-color: var(--color-status-success-bg);
+	border-color: var(--color-status-success-border);
+	color: var(--color-status-success-text);
+}
+
+.status--warning {
+	background-color: var(--color-status-warning-bg);
+	border-color: var(--color-status-warning-border);
+	color: var(--color-status-warning-text);
+}
+
+.status--error {
+	background-color: var(--color-status-error-bg);
+	border-color: var(--color-status-error-border);
+	color: var(--color-status-error-text);
+}
+
+.status--loading {
+	background-color: var(--color-surface-subtle);
+	border-color: var(--color-primary);
+	color: var(--color-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   Indicador de Carregamento (.status-banner__spinner)
+   Animação focada em transform: rotate() para zero repaint
+   -------------------------------------------------------------------------- */
+.status-banner__spinner {
+	width: 1.125rem;
+	height: 1.125rem;
+	border: 2px solid rgba(255, 255, 255, 0.2);
+	border-top-color: var(--color-primary-light);
+	border-radius: 50%;
+	animation: spin 0.75s linear infinite;
+	flex-shrink: 0;
+}
+
+[data-theme="light"] .status-banner__spinner {
+	border-color: rgba(2, 132, 199, 0.2);
+	border-top-color: var(--color-primary);
+}
+
+.status-banner__spinner[hidden] {
+	display: none !important;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Acessibilidade e Estados Desabilitados (Inputs e Botões)
+   -------------------------------------------------------------------------- */
+button:disabled,
+input:disabled {
+	opacity: 0.6;
+	cursor: not-allowed !important;
+	filter: grayscale(20%);
+	pointer-events: none;
+}
+
+/* Otimização de Performance para Animações e Transições */
+@media (prefers-reduced-motion: no-preference) {
+	.status-banner:not([hidden]) {
+		animation: fadeInSlide 200ms ease-out;
+	}
+}
+
+@keyframes fadeInSlide {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+
 
