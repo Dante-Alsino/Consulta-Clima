@@ -1,0 +1,18 @@
+# Diretrizes e materiais de referência locais
+Diretriz/
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependências e variáveis de ambiente (caso adicionados futuramente)
+node_modules/
+.env
+.env.local
