@@ -77,8 +77,64 @@
 			</section>
 		</aside>
 
-		<!-- Área Principal do Painel Meteorológico (será detalhada no Card 03) -->
-		<div class="weather-workspace" id="painel-meteorologico"></div>
+		<!-- Área Principal do Painel Meteorológico (RF03, RF04) -->
+		<section class="weather-workspace" id="painel-meteorologico" aria-label="Informações meteorológicas">
+			<!-- Estado Inicial / Vazio (Empty State) -->
+			<div id="clima-inicial" class="empty-state">
+				<p class="empty-state__title">Nenhuma localidade selecionada</p>
+				<p class="empty-state__description">
+					Utilize o formulário de pesquisa para buscar uma cidade ou escolha uma de suas cidades favoritas salvas.
+				</p>
+			</div>
+
+			<!-- Painel de Condições Atuais (RF03) -->
+			<article id="painel-atual" class="current-weather" aria-labelledby="titulo-clima-atual" hidden>
+				<header class="current-weather__header">
+					<div class="current-weather__location">
+						<h2 id="titulo-clima-atual" class="current-weather__city"></h2>
+						<p id="clima-data-hora" class="current-weather__timestamp"></p>
+					</div>
+					<button
+						type="button"
+						id="btn-favoritar"
+						class="btn btn--favorite"
+						aria-pressed="false"
+						aria-label="Adicionar cidade aos favoritos"
+					>
+						<span class="btn__icon" aria-hidden="true">★</span>
+						<span id="btn-favoritar-texto" class="btn__text">Favoritar</span>
+					</button>
+				</header>
+
+				<div class="current-weather__summary">
+					<div class="current-weather__temp-wrapper">
+						<span id="clima-temperatura" class="current-weather__temperature"></span>
+					</div>
+					<p id="clima-descricao" class="current-weather__description"></p>
+				</div>
+
+				<dl class="current-weather__metrics">
+					<div class="metric-card">
+						<dt class="metric-card__label">Sensação Térmica</dt>
+						<dd id="clima-sensacao" class="metric-card__value"></dd>
+					</div>
+					<div class="metric-card">
+						<dt class="metric-card__label">Umidade Relativa</dt>
+						<dd id="clima-umidade" class="metric-card__value"></dd>
+					</div>
+					<div class="metric-card">
+						<dt class="metric-card__label">Velocidade do Vento</dt>
+						<dd id="clima-vento" class="metric-card__value"></dd>
+					</div>
+				</dl>
+			</article>
+
+			<!-- Seção de Previsão para os Próximos 5 Dias (RF04) -->
+			<section id="painel-previsao" class="forecast-section" aria-labelledby="titulo-previsao" hidden>
+				<h2 id="titulo-previsao" class="forecast-section__title">Previsão para os próximos 5 dias</h2>
+				<div id="grade-previsao" class="forecast-grid" role="list" aria-label="Previsão do tempo diária para os próximos 5 dias"></div>
+			</section>
+		</section>
 	</main>
 
 	<footer class="app-footer">
