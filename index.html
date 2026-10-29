@@ -11,8 +11,20 @@
 <body>
 	<header class="app-header">
 		<div class="app-header__content">
-			<h1 class="app-header__title">Consulta Meteorológica</h1>
-			<p class="app-header__subtitle">Condições climáticas atuais e previsão para os próximos 5 dias</p>
+			<div class="app-header__branding">
+				<h1 class="app-header__title">Consulta Meteorológica</h1>
+				<p class="app-header__subtitle">Condições climáticas atuais e previsão para os próximos 5 dias</p>
+			</div>
+			<button
+				type="button"
+				id="btn-tema"
+				class="btn btn--theme"
+				aria-label="Alternar entre modo claro e escuro"
+				title="Alternar tema"
+			>
+				<span id="icone-tema" class="btn__icon" aria-hidden="true">☀️</span>
+				<span id="texto-tema" class="btn__theme-text">Modo Claro</span>
+			</button>
 		</div>
 	</header>
 

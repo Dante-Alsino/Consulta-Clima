@@ -4,7 +4,7 @@
    ========================================================================== */
 
 :root {
-	/* Paleta de Cores Semântica (Atmosférica & Acessível WCAG AA) */
+	/* Paleta Dark Mode (Padrão) */
 	--color-bg: #0f172a;               /* Fundo principal escuro profundo (slate-900) */
 	--color-surface: #1e293b;          /* Superfície de cartões/painéis (slate-800) */
 	--color-surface-hover: #334155;    /* Superfície interativa em hover (slate-700) */
@@ -79,6 +79,45 @@
 	--transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Paleta White Mode / Light Mode */
+[data-theme="light"] {
+	--color-bg: #f8fafc;               /* Slate-50 */
+	--color-surface: #ffffff;          /* Branco Puro */
+	--color-surface-hover: #f1f5f9;    /* Slate-100 */
+	--color-surface-subtle: #f1f5f9;   /* Slate-100 */
+	--color-border: #cbd5e1;           /* Slate-300 */
+	--color-border-focus: #0284c7;     /* Sky-600 */
+
+	--color-text-main: #0f172a;        /* Slate-900 */
+	--color-text-muted: #64748b;       /* Slate-500 */
+	--color-text-inverse: #ffffff;
+
+	--color-primary: #0284c7;          /* Sky-600 */
+	--color-primary-hover: #0369a1;    /* Sky-700 */
+	--color-primary-light: #0284c7;    /* Sky-600 */
+	--color-accent-gold: #d97706;      /* Amber-600 */
+
+	--color-status-info-bg: #e0f2fe;
+	--color-status-info-border: #0284c7;
+	--color-status-info-text: #0369a1;
+
+	--color-status-success-bg: #d1fae5;
+	--color-status-success-border: #059669;
+	--color-status-success-text: #065f46;
+
+	--color-status-warning-bg: #fef3c7;
+	--color-status-warning-border: #d97706;
+	--color-status-warning-text: #92400e;
+
+	--color-status-error-bg: #fee2e2;
+	--color-status-error-border: #dc2626;
+	--color-status-error-text: #991b1b;
+
+	--shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08);
+	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+}
+
 /* --------------------------------------------------------------------------
    Modern CSS Reset
    -------------------------------------------------------------------------- */
@@ -99,6 +138,10 @@ html {
 	color-scheme: dark;
 }
 
+html[data-theme="light"] {
+	color-scheme: light;
+}
+
 body {
 	min-height: 100vh;
 	background-color: var(--color-bg);
@@ -108,6 +151,7 @@ body {
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* Imagens e Mídia Responsiva */
@@ -170,3 +214,511 @@ a:hover {
 		scroll-behavior: auto !important;
 	}
 }
+
+/* ==========================================================================
+   LAYOUT MOBILE-FIRST COM CSS GRID E FLEXBOX (CARD 05)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Cabeçalho da Aplicação (App Header)
+   -------------------------------------------------------------------------- */
+.app-header {
+	background-color: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
+	padding: var(--space-lg) var(--space-md);
+	box-shadow: var(--shadow-sm);
+}
+
+.app-header__content {
+	max-width: 80rem; /* ~1280px */
+	margin: 0 auto;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--space-md);
+}
+
+.app-header__branding {
+	flex: 1;
+}
+
+.app-header__title {
+	font-size: var(--font-size-xl);
+	font-weight: 700;
+	color: var(--color-text-main);
+	letter-spacing: -0.02em;
+}
+
+.app-header__subtitle {
+	font-size: var(--font-size-sm);
+	color: var(--color-text-muted);
+	margin-top: var(--space-2xs);
+}
+
+.btn--theme {
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	color: var(--color-text-main);
+	padding: var(--space-xs) var(--space-sm);
+	border-radius: var(--radius-full);
+	font-size: var(--font-size-xs);
+	font-weight: 600;
+	gap: var(--space-xs);
+}
+
+.btn--theme:hover {
+	background-color: var(--color-surface-hover);
+	border-color: var(--color-primary-light);
+}
+
+/* --------------------------------------------------------------------------
+   Área Principal (App Main): Mobile-First (1 Coluna) -> Desktop (2 Colunas Grid)
+   -------------------------------------------------------------------------- */
+.app-main {
+	flex: 1 0 auto;
+	width: 100%;
+	max-width: 80rem;
+	margin: 0 auto;
+	padding: var(--space-md);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-lg);
+}
+
+/* Sidebar (Pesquisa, Status, Resultados e Favoritos) */
+.sidebar {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+	width: 100%;
+}
+
+/* Painel de Conteúdo Meteorológico Principal */
+.weather-workspace {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-lg);
+	width: 100%;
+}
+
+/* Transição para 2 Colunas em Telas Médias e Grandes (Desktop / Tablet Paisagem) */
+@media (min-width: 56rem) {
+	.app-main {
+		display: grid;
+		grid-template-columns: minmax(20rem, 24rem) 1fr;
+		align-items: start;
+		padding: var(--space-xl) var(--space-md);
+		gap: var(--space-xl);
+	}
+
+	.sidebar {
+		position: sticky;
+		top: var(--space-md);
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Grids Internos do Painel Meteorológico
+   -------------------------------------------------------------------------- */
+
+/* Grid de Métricas do Clima Atual (Sensação, Umidade, Vento) */
+.current-weather__metrics {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+	gap: var(--space-md);
+	margin-top: var(--space-lg);
+}
+
+/* Grade de Previsão dos Próximos 5 Dias */
+.forecast-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+	gap: var(--space-md);
+	margin-top: var(--space-md);
+}
+
+/* --------------------------------------------------------------------------
+   Rodapé da Aplicação (App Footer)
+   -------------------------------------------------------------------------- */
+.app-footer {
+	margin-top: auto;
+	background-color: var(--color-surface);
+	border-top: 1px solid var(--color-border);
+	padding: var(--space-md);
+	text-align: center;
+}
+
+.app-footer__text {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   ESTILIZAÇÃO DE COMPONENTES (CARD 06)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Painéis Base (.panel) e Empty States
+   -------------------------------------------------------------------------- */
+.panel {
+	background-color: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+	padding: var(--space-lg);
+	box-shadow: var(--shadow-sm);
+}
+
+.panel__title {
+	font-size: var(--font-size-md);
+	font-weight: 600;
+	color: var(--color-text-main);
+	margin-bottom: var(--space-md);
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.empty-message {
+	font-size: var(--font-size-sm);
+	color: var(--color-text-muted);
+	font-style: italic;
+	padding: var(--space-xs) 0;
+}
+
+.empty-state {
+	background-color: var(--color-surface);
+	border: 2px dashed var(--color-border);
+	border-radius: var(--radius-xl);
+	padding: var(--space-2xl) var(--space-lg);
+	text-align: center;
+}
+
+.empty-state__title {
+	font-size: var(--font-size-lg);
+	font-weight: 600;
+	color: var(--color-text-main);
+	margin-bottom: var(--space-xs);
+}
+
+.empty-state__description {
+	font-size: var(--font-size-base);
+	color: var(--color-text-muted);
+	max-width: 32rem;
+	margin: 0 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Formulário de Busca (.search-form)
+   -------------------------------------------------------------------------- */
+.search-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.search-form__label {
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	color: var(--color-text-muted);
+}
+
+.search-form__controls {
+	display: flex;
+	gap: var(--space-xs);
+}
+
+.search-form__input {
+	flex: 1;
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	padding: var(--space-xs) var(--space-sm);
+	color: var(--color-text-main);
+	transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.search-form__input:focus {
+	background-color: var(--color-surface);
+	border-color: var(--color-border-focus);
+}
+
+.search-form__hint {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+	line-height: var(--line-height-normal);
+}
+
+/* --------------------------------------------------------------------------
+   Botões do Sistema (.btn)
+   -------------------------------------------------------------------------- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-xs);
+	padding: var(--space-xs) var(--space-md);
+	border-radius: var(--radius-md);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	transition: background-color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+	white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.btn--primary {
+	background-color: var(--color-primary);
+	color: #ffffff;
+}
+
+.btn--primary:hover:not(:disabled) {
+	background-color: var(--color-primary-hover);
+}
+
+.btn--favorite {
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	color: var(--color-text-main);
+	padding: var(--space-xs) var(--space-sm);
+}
+
+.btn--favorite:hover:not(:disabled) {
+	background-color: var(--color-surface-hover);
+	border-color: var(--color-primary-light);
+}
+
+.btn--favorite[aria-pressed="true"] {
+	background-color: var(--color-status-warning-bg);
+	border-color: var(--color-status-warning-border);
+	color: var(--color-accent-gold);
+}
+
+.btn--favorite[aria-pressed="true"] .btn__icon {
+	color: var(--color-accent-gold);
+}
+
+.btn--delete {
+	background-color: transparent;
+	color: var(--color-text-muted);
+	padding: var(--space-2xs) var(--space-xs);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-xs);
+}
+
+.btn--delete:hover:not(:disabled) {
+	background-color: var(--color-status-error-bg);
+	color: var(--color-status-error-text);
+}
+
+/* --------------------------------------------------------------------------
+   Listas de Localidades e Favoritos (.location-list)
+   -------------------------------------------------------------------------- */
+.location-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	margin-top: var(--space-xs);
+	max-height: 22rem;
+	overflow-y: auto;
+	padding-right: var(--space-2xs);
+}
+
+.location-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-xs);
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	padding: var(--space-xs) var(--space-sm);
+	transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.location-item:hover {
+	background-color: var(--color-surface-hover);
+	border-color: var(--color-primary-light);
+}
+
+.location-item__select {
+	flex: 1;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.location-item__name {
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--color-text-main);
+}
+
+.location-item__meta {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Painel de Clima Atual (.current-weather)
+   -------------------------------------------------------------------------- */
+.current-weather {
+	background-color: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xl);
+	padding: var(--space-xl);
+	box-shadow: var(--shadow-md);
+}
+
+.current-weather__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: var(--space-md);
+	border-bottom: 1px solid var(--color-border);
+	padding-bottom: var(--space-md);
+}
+
+.current-weather__city {
+	font-size: var(--font-size-lg);
+	font-weight: 700;
+	color: var(--color-text-main);
+}
+
+.current-weather__timestamp {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+	margin-top: var(--space-2xs);
+}
+
+.current-weather__summary {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-md);
+	flex-wrap: wrap;
+	margin-top: var(--space-lg);
+}
+
+.current-weather__temperature {
+	font-size: var(--font-size-display);
+	font-weight: 800;
+	line-height: 1;
+	color: var(--color-primary-light);
+	letter-spacing: -0.03em;
+}
+
+.current-weather__description {
+	font-size: var(--font-size-md);
+	font-weight: 500;
+	color: var(--color-text-main);
+	background-color: var(--color-surface-subtle);
+	padding: var(--space-2xs) var(--space-sm);
+	border-radius: var(--radius-full);
+	border: 1px solid var(--color-border);
+}
+
+/* Cartões de Métrica Individual (.metric-card) */
+.metric-card {
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+	padding: var(--space-md);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2xs);
+}
+
+.metric-card__label {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: 600;
+}
+
+.metric-card__value {
+	font-size: var(--font-size-md);
+	font-weight: 700;
+	color: var(--color-text-main);
+	margin-inline-start: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Seção e Cartões de Previsão de 5 Dias (.forecast-section & .forecast-card)
+   -------------------------------------------------------------------------- */
+.forecast-section {
+	background-color: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xl);
+	padding: var(--space-xl);
+	box-shadow: var(--shadow-sm);
+}
+
+.forecast-section__title {
+	font-size: var(--font-size-md);
+	font-weight: 600;
+	color: var(--color-text-main);
+}
+
+.forecast-card {
+	background-color: var(--color-surface-subtle);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+	padding: var(--space-md);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: var(--space-xs);
+	transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.forecast-card:hover {
+	transform: translateY(-2px);
+	border-color: var(--color-primary-light);
+}
+
+.forecast-card__date {
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	color: var(--color-text-main);
+}
+
+.forecast-card__condition {
+	font-size: var(--font-size-xs);
+	color: var(--color-text-muted);
+	min-height: 2.2rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.forecast-card__temps {
+	display: flex;
+	gap: var(--space-xs);
+	align-items: center;
+	margin-top: var(--space-2xs);
+	font-size: var(--font-size-sm);
+}
+
+.forecast-card__temp-max {
+	font-weight: 700;
+	color: var(--color-text-main);
+}
+
+.forecast-card__temp-min {
+	color: var(--color-text-muted);
+}
+
+.forecast-card__rain {
+	font-size: var(--font-size-xs);
+	color: var(--color-primary-light);
+	background-color: rgba(2, 132, 199, 0.15);
+	padding: 2px var(--space-xs);
+	border-radius: var(--radius-sm);
+	margin-top: var(--space-2xs);
+}
+
+
