@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Aplicação web de consulta meteorológica em tempo real e previsão para os próximos 5 dias utilizando a API pública Open-Meteo.">
+	<title>Consulta Meteorológica — Previsão do Tempo</title>
+	<link rel="stylesheet" href="css/style.css">
+	<script src="js/script.js" defer></script>
+</head>
+<body>
+	<header class="app-header">
+		<div class="app-header__content">
+			<h1 class="app-header__title">Consulta Meteorológica</h1>
+			<p class="app-header__subtitle">Condições climáticas atuais e previsão para os próximos 5 dias</p>
+		</div>
+	</header>
+
+	<main class="app-main">
+		<!-- Painel Lateral: Busca, Feedback Assíncrono, Resultados de Localidades e Favoritos -->
+		<aside class="sidebar" aria-label="Pesquisa e cidades favoritas">
+			<!-- Seção de Pesquisa de Cidades (RF01) -->
+			<section class="panel" aria-labelledby="titulo-pesquisa">
+				<h2 id="titulo-pesquisa" class="panel__title">Pesquisar Cidade</h2>
+				<form id="form-busca" class="search-form" novalidate>
+					<label for="input-cidade" class="search-form__label">Nome da cidade ou localidade</label>
+					<div class="search-form__controls">
+						<input
+							type="search"
+							id="input-cidade"
+							name="cidade"
+							class="search-form__input"
+							placeholder="Ex.: Porto Alegre, São Paulo..."
+							autocomplete="off"
+							required
+							aria-describedby="dica-pesquisa"
+						>
+						<button type="submit" id="btn-buscar" class="btn btn--primary">
+							Buscar
+						</button>
+					</div>
+					<small id="dica-pesquisa" class="search-form__hint">
+						Digite o nome da cidade e selecione a localidade correspondente na lista.
+					</small>
+				</form>
+			</section>
+
+			<!-- Área de Feedback Assíncrono: Carregamento, Sucesso e Erro (RF08) -->
+			<div
+				id="status-container"
+				class="status-banner"
+				role="status"
+				aria-live="polite"
+				aria-atomic="true"
+				hidden
+			>
+				<span id="status-spinner" class="status-banner__spinner" aria-hidden="true" hidden></span>
+				<p id="status-mensagem" class="status-banner__text"></p>
+			</div>
+
+			<!-- Área de Resultados da Pesquisa de Localidades (RF01, RF02) -->
+			<section class="panel" aria-labelledby="titulo-resultados">
+				<h2 id="titulo-resultados" class="panel__title">Localidades Encontradas</h2>
+				<p id="resultados-vazio" class="empty-message">
+					Realize uma pesquisa acima para listar as cidades encontradas.
+				</p>
+				<ul id="lista-resultados" class="location-list" aria-label="Resultados da pesquisa de cidades"></ul>
+			</section>
+
+			<!-- Área de Cidades Favoritas (RF06, RF07) -->
+			<section class="panel" aria-labelledby="titulo-favoritos">
+				<h2 id="titulo-favoritos" class="panel__title">Cidades Favoritas</h2>
+				<p id="favoritos-vazio" class="empty-message">
+					Nenhuma cidade favorita salva até o momento.
+				</p>
+				<ul id="lista-favoritos" class="location-list" aria-label="Lista de cidades favoritas"></ul>
+			</section>
+		</aside>
+
+		<!-- Área Principal do Painel Meteorológico (será detalhada no Card 03) -->
+		<div class="weather-workspace" id="painel-meteorologico"></div>
+	</main>
+
+	<footer class="app-footer">
+		<p class="app-footer__text">
+			Dados meteorológicos e de geocodificação fornecidos por
+			<a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="app-footer__link">
+				Open-Meteo.com
+			</a>
+			sob licença <abbr title="Creative Commons Attribution 4.0 International">CC BY 4.0</abbr>.
+		</p>
+	</footer>
+</body>
+</html>
