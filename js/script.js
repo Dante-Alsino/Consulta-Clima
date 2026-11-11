@@ -213,6 +213,124 @@ async function consultarClimaAPI(latitude, longitude) {
 	}
 }
 
+// Chave utilizada para persistência no localStorage
+const CHAVE_FAVORITOS_STORAGE = 'consulta_clima_favoritos';
+
+/**
+ * Gera um identificador único para a localidade com base no ID ou coordenadas
+ * @param {object} local 
+ * @returns {string}
+ */
+function gerarIdLocalidade(local) {
+	if (local.id !== undefined && local.id !== null) {
+		return String(local.id);
+	}
+	const lat = Number(local.latitude).toFixed(4);
+	const lon = Number(local.longitude).toFixed(4);
+	return `${lat}_${lon}`;
+}
+
+/**
+ * Carrega a lista de favoritos salva no navegador
+ * @returns {Array<object>}
+ */
+function carregarFavoritos() {
+	try {
+		const serializado = localStorage.getItem(CHAVE_FAVORITOS_STORAGE);
+		if (!serializado) {
+			return [];
+		}
+		const parsed = JSON.parse(serializado);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		return parsed.filter((item) => (
+			item &&
+			typeof item === 'object' &&
+			typeof item.name === 'string' &&
+			Number.isFinite(Number(item.latitude)) &&
+			Number.isFinite(Number(item.longitude))
+		));
+	} catch (erro) {
+		console.warn('Falha ao ler favoritos do armazenamento:', erro);
+		return [];
+	}
+}
+
+/**
+ * Salva a lista de favoritos no armazenamento local
+ * @param {Array<object>} favoritos 
+ * @returns {boolean}
+ */
+function salvarFavoritos(favoritos) {
+	try {
+		if (!Array.isArray(favoritos)) return false;
+		localStorage.setItem(CHAVE_FAVORITOS_STORAGE, JSON.stringify(favoritos));
+		return true;
+	} catch (erro) {
+		console.error('Falha ao salvar favoritos no armazenamento:', erro);
+		return false;
+	}
+}
+
+/**
+ * Verifica se uma localidade já está salva nos favoritos
+ * @param {object} local 
+ * @returns {boolean}
+ */
+function isLocalidadeFavorita(local) {
+	if (!local) return false;
+	const idAlvo = gerarIdLocalidade(local);
+	const favoritos = carregarFavoritos();
+	return favoritos.some((item) => gerarIdLocalidade(item) === idAlvo);
+}
+
+/**
+ * Adiciona uma cidade à lista de favoritos evitando duplicidades
+ * @param {object} local 
+ * @returns {{ sucesso: boolean, lista: Array<object>, motivo?: string }}
+ */
+function adicionarFavorito(local) {
+	if (!local || !local.name || !Number.isFinite(Number(local.latitude)) || !Number.isFinite(Number(local.longitude))) {
+		return { sucesso: false, lista: carregarFavoritos(), motivo: 'Dados da localidade incompletos.' };
+	}
+
+	const favoritos = carregarFavoritos();
+	const idAlvo = gerarIdLocalidade(local);
+
+	const jaExiste = favoritos.some((item) => gerarIdLocalidade(item) === idAlvo);
+	if (jaExiste) {
+		return { sucesso: false, lista: favoritos, motivo: 'Localidade já está favoritada.' };
+	}
+
+	const novoItem = {
+		id: idAlvo,
+		name: local.name,
+		admin1: local.admin1 || '',
+		admin2: local.admin2 || '',
+		country: local.country || '',
+		latitude: Number(local.latitude),
+		longitude: Number(local.longitude)
+	};
+
+	favoritos.push(novoItem);
+	salvarFavoritos(favoritos);
+	return { sucesso: true, lista: favoritos };
+}
+
+/**
+ * Remove uma cidade da lista de favoritos pelo identificador
+ * @param {string|number} id 
+ * @returns {Array<object>} Lista atualizada
+ */
+function removerFavorito(id) {
+	const idStr = String(id);
+	const favoritos = carregarFavoritos();
+	const atualizados = favoritos.filter((item) => gerarIdLocalidade(item) !== idStr);
+	salvarFavoritos(atualizados);
+	return atualizados;
+}
+
 
 /**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
