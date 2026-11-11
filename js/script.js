@@ -569,6 +569,172 @@ function renderizarFavoritos(favoritos = carregarFavoritos()) {
 	listaEl.appendChild(fragmento);
 }
 
+/**
+ * Atualiza o estado visual e de acessibilidade do botão de favoritar a cidade atual
+ * @param {object|null} local 
+ */
+function atualizarBotaoFavoritar(local = localidadeSelecionada) {
+	const btnFavoritar = document.getElementById('btn-favoritar');
+	const textoBtn = document.getElementById('btn-favoritar-texto');
+
+	if (!btnFavoritar) return;
+
+	if (!local) {
+		btnFavoritar.disabled = true;
+		btnFavoritar.setAttribute('aria-pressed', 'false');
+		if (textoBtn) textoBtn.textContent = 'Favoritar';
+		return;
+	}
+
+	const jaFavorito = isLocalidadeFavorita(local);
+	btnFavoritar.setAttribute('aria-pressed', jaFavorito ? 'true' : 'false');
+	btnFavoritar.disabled = jaFavorito;
+
+	if (jaFavorito) {
+		if (textoBtn) textoBtn.textContent = 'Favoritada';
+		btnFavoritar.setAttribute('aria-label', `${local.name} já está nos favoritos`);
+	} else {
+		if (textoBtn) textoBtn.textContent = 'Favoritar';
+		btnFavoritar.setAttribute('aria-label', `Adicionar ${local.name} aos favoritos`);
+	}
+}
+
+/**
+ * Preenche e exibe o painel com as condições meteorológicas atuais da cidade selecionada
+ * @param {object} local - Dados da cidade selecionada
+ * @param {object} dadosClima - Resposta completa da API Open-Meteo
+ */
+function renderizarClimaAtual(local, dadosClima) {
+	if (!local || !dadosClima || !dadosClima.current) return;
+
+	localidadeSelecionada = local;
+
+	const climaInicial = document.getElementById('clima-inicial');
+	const painelAtual = document.getElementById('painel-atual');
+	const tituloEl = document.getElementById('titulo-clima-atual');
+	const dataHoraEl = document.getElementById('clima-data-hora');
+	const tempEl = document.getElementById('clima-temperatura');
+	const descEl = document.getElementById('clima-descricao');
+	const sensacaoEl = document.getElementById('clima-sensacao');
+	const umidadeEl = document.getElementById('clima-umidade');
+	const ventoEl = document.getElementById('clima-vento');
+
+	const atual = dadosClima.current;
+	const unidades = dadosClima.current_units || {};
+	const infoWMO = obterInfoClimaWMO(atual.weather_code);
+
+	const partesLocal = [local.name, local.admin1, local.country].filter(Boolean);
+	if (tituloEl) {
+		tituloEl.textContent = partesLocal.join(', ');
+	}
+
+	if (dataHoraEl) {
+		dataHoraEl.textContent = formatarDataHoraLeitura(atual.time, dadosClima.timezone);
+	}
+
+	if (tempEl) {
+		tempEl.textContent = formatarValorComUnidade(atual.temperature_2m, unidades.temperature_2m);
+	}
+
+	if (descEl) {
+		descEl.textContent = `${infoWMO.icone} ${infoWMO.descricao}`;
+	}
+
+	if (sensacaoEl) {
+		sensacaoEl.textContent = formatarValorComUnidade(atual.apparent_temperature, unidades.apparent_temperature);
+	}
+
+	if (umidadeEl) {
+		umidadeEl.textContent = formatarValorComUnidade(atual.relative_humidity_2m, unidades.relative_humidity_2m);
+	}
+
+	if (ventoEl) {
+		ventoEl.textContent = formatarValorComUnidade(atual.wind_speed_10m, unidades.wind_speed_10m);
+	}
+
+	atualizarBotaoFavoritar(local);
+
+	if (climaInicial) climaInicial.hidden = true;
+	if (painelAtual) painelAtual.hidden = false;
+}
+
+/**
+ * Constrói e exibe os cartões comparativos de previsão para os próximos 5 dias
+ * @param {object} daily - Bloco daily retornado pela API
+ * @param {object} [dailyUnits={}] - Unidades do bloco daily_units
+ */
+function renderizarPrevisaoDiaria(daily, dailyUnits = {}) {
+	const painelPrevisao = document.getElementById('painel-previsao');
+	const gradePrevisao = document.getElementById('grade-previsao');
+
+	if (!painelPrevisao || !gradePrevisao) return;
+
+	gradePrevisao.replaceChildren();
+
+	if (!daily || !Array.isArray(daily.time) || daily.time.length === 0) {
+		painelPrevisao.hidden = true;
+		return;
+	}
+
+	const fragmento = document.createDocumentFragment();
+	const totalDias = Math.min(daily.time.length, 5);
+
+	for (let i = 0; i < totalDias; i++) {
+		const dataIso = daily.time[i];
+		const codigoClima = Array.isArray(daily.weather_code) ? daily.weather_code[i] : null;
+		const tempMax = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[i] : null;
+		const tempMin = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[i] : null;
+		const probChuva = Array.isArray(daily.precipitation_probability_max)
+			? daily.precipitation_probability_max[i]
+			: null;
+
+		const infoWMO = obterInfoClimaWMO(codigoClima);
+
+		const card = document.createElement('article');
+		card.className = 'forecast-card';
+		card.setAttribute('role', 'listitem');
+
+		const dataEl = document.createElement('h3');
+		dataEl.className = 'forecast-card__date';
+		dataEl.textContent = formatarDataPrevisao(dataIso);
+
+		const condicaoEl = document.createElement('p');
+		condicaoEl.className = 'forecast-card__condition';
+		condicaoEl.textContent = `${infoWMO.icone} ${infoWMO.descricao}`;
+
+		const tempsContainer = document.createElement('div');
+		tempsContainer.className = 'forecast-card__temps';
+
+		const spanMax = document.createElement('span');
+		spanMax.className = 'forecast-card__temp-max';
+		spanMax.title = 'Temperatura máxima';
+		spanMax.textContent = `Máx: ${formatarValorComUnidade(tempMax, dailyUnits.temperature_2m_max)}`;
+
+		const spanMin = document.createElement('span');
+		spanMin.className = 'forecast-card__temp-min';
+		spanMin.title = 'Temperatura mínima';
+		spanMin.textContent = `Mín: ${formatarValorComUnidade(tempMin, dailyUnits.temperature_2m_min)}`;
+
+		tempsContainer.appendChild(spanMax);
+		tempsContainer.appendChild(spanMin);
+
+		const chuvaEl = document.createElement('p');
+		chuvaEl.className = 'forecast-card__rain';
+		const textoChuva = formatarValorComUnidade(probChuva, dailyUnits.precipitation_probability_max);
+		chuvaEl.textContent = `Chuva: ${textoChuva}`;
+
+		card.appendChild(dataEl);
+		card.appendChild(condicaoEl);
+		card.appendChild(tempsContainer);
+		card.appendChild(chuvaEl);
+
+		fragmento.appendChild(card);
+	}
+
+	gradePrevisao.appendChild(fragmento);
+	painelPrevisao.hidden = false;
+}
+
 
 /**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
