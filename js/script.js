@@ -331,6 +331,92 @@ function removerFavorito(id) {
 	return atualizados;
 }
 
+// Estado em memória da aplicação
+let localidadeSelecionada = null;
+let resultadosPesquisaAtuais = [];
+
+/**
+ * Atualiza o banner de status com feedback visual e indicador de carregamento
+ * @param {string} texto - Mensagem a ser exibida (vazio oculta o banner)
+ * @param {'info'|'loading'|'success'|'warning'|'error'} [tipo='info'] - Categoria visual da mensagem
+ * @param {boolean} [carregando=false] - Exibe ou oculta o spinner de carregamento
+ */
+function atualizarMensagemEstado(texto, tipo = 'info', carregando = false) {
+	const container = document.getElementById('status-container');
+	const spinner = document.getElementById('status-spinner');
+	const paragrafo = document.getElementById('status-mensagem');
+
+	if (!container || !paragrafo) return;
+
+	const mensagemLimpa = (texto || '').trim();
+
+	if (!mensagemLimpa) {
+		container.hidden = true;
+		paragrafo.textContent = '';
+		if (spinner) spinner.hidden = true;
+		return;
+	}
+
+	const classesEstado = [
+		'status--info',
+		'status--loading',
+		'status--success',
+		'status--warning',
+		'status--error'
+	];
+
+	container.classList.remove(...classesEstado);
+
+	const classeAlvo = classesEstado.includes(`status--${tipo}`)
+		? `status--${tipo}`
+		: 'status--info';
+
+	container.classList.add(classeAlvo);
+	paragrafo.textContent = mensagemLimpa;
+
+	if (spinner) {
+		spinner.hidden = !carregando;
+	}
+
+	container.hidden = false;
+}
+
+/**
+ * Limpa e oculta os painéis de clima atual e previsão, restaurando o estado vazio
+ * @param {boolean} [mostrarEstadoInicial=true] - Define se o card de boas-vindas deve aparecer
+ */
+function limparPainelClima(mostrarEstadoInicial = true) {
+	localidadeSelecionada = null;
+
+	const climaInicial = document.getElementById('clima-inicial');
+	const painelAtual = document.getElementById('painel-atual');
+	const painelPrevisao = document.getElementById('painel-previsao');
+	const gradePrevisao = document.getElementById('grade-previsao');
+
+	if (painelAtual) painelAtual.hidden = true;
+	if (painelPrevisao) painelPrevisao.hidden = true;
+	if (climaInicial) climaInicial.hidden = !mostrarEstadoInicial;
+
+	const idsTextoAtual = [
+		'titulo-clima-atual',
+		'clima-data-hora',
+		'clima-temperatura',
+		'clima-descricao',
+		'clima-sensacao',
+		'clima-umidade',
+		'clima-vento'
+	];
+
+	idsTextoAtual.forEach((id) => {
+		const el = document.getElementById(id);
+		if (el) el.textContent = '';
+	});
+
+	if (gradePrevisao) {
+		gradePrevisao.replaceChildren();
+	}
+}
+
 
 /**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
