@@ -4,14 +4,7 @@
 
 const CHAVE_TEMA_STORAGE = 'consulta_clima_tema';
 
-/* ==========================================================================
-   CARD 08 — DICIONÁRIO WMO, CONSTANTES E UTILITÁRIOS DE FORMATAÇÃO
-   Requisitos RF03, RF04 e Regra de Negócio 9 (Sem dados fictícios)
-   ========================================================================== */
-
-/**
- * Tabela de códigos WMO oficiais da Open-Meteo, suas descrições e ícones correspondentes
- */
+// Códigos meteorológicos WMO e descrições correspondentes
 const DESCRICOES_CLIMA_WMO = {
 	0: { descricao: 'Céu limpo', icone: '☀️' },
 	1: { descricao: 'Predominantemente limpo', icone: '🌤️' },
@@ -59,10 +52,7 @@ function obterInfoClimaWMO(codigo) {
 }
 
 /**
- * Formata um valor numérico acompanhado de sua unidade oficial da API.
- * Garante que valores ausentes (null, undefined, NaN) sejam apresentados como "Não disponível"
- * sem nunca inventar valores fictícios (Regra de Negócio 9 e Teste 13).
- * 
+ * Formata valor numérico acompanhado de unidade ou fallback caso ausente
  * @param {number|string|null|undefined} valor 
  * @param {string} [unidade='']
  * @returns {string}
@@ -128,6 +118,217 @@ function formatarDataHoraLeitura(isoString, timezone = '') {
 	} catch {
 		return `Atualizado em: ${isoString}`;
 	}
+}
+/**
+ * Consulta a API de Geocodificação da Open-Meteo para localizar cidades pelo nome
+ * @param {string} termo - Nome da cidade ou região
+ * @returns {Promise<Array<{id: number|string, name: string, admin1: string, admin2: string, country: string, latitude: number, longitude: number}>>}
+ */
+async function pesquisarCidadesAPI(termo) {
+	const termoLimpo = (termo || '').trim();
+	if (!termoLimpo) {
+		return [];
+	}
+
+	const parametros = new URLSearchParams({
+		name: termoLimpo,
+		count: '10',
+		language: 'pt',
+		format: 'json'
+	});
+
+	const url = `https://geocoding-api.open-meteo.com/v1/search?${parametros.toString()}`;
+
+	try {
+		const resposta = await fetch(url);
+
+		if (!resposta.ok) {
+			throw new Error(`Falha no serviço de localização (HTTP ${resposta.status}).`);
+		}
+
+		const dados = await resposta.json();
+
+		if (!dados || !Array.isArray(dados.results)) {
+			return [];
+		}
+
+		// Normaliza os resultados garantindo campos definidos e tipos consistentes
+		return dados.results.map((local) => ({
+			id: local.id ?? `${local.latitude}_${local.longitude}`,
+			name: local.name || '',
+			admin1: local.admin1 || '',
+			admin2: local.admin2 || '',
+			country: local.country || '',
+			latitude: Number(local.latitude),
+			longitude: Number(local.longitude)
+		}));
+	} catch (erro) {
+		console.error('Erro na requisição de geocodificação:', erro);
+		throw erro;
+	}
+}
+
+/**
+ * Consulta as condições atuais e a previsão para os próximos 5 dias
+ * @param {number|string} latitude - Latitude geográfica (-90 a 90)
+ * @param {number|string} longitude - Longitude geográfica (-180 a 180)
+ * @returns {Promise<object>} Objeto com current, current_units, daily, daily_units e timezone
+ */
+async function consultarClimaAPI(latitude, longitude) {
+	const lat = Number(latitude);
+	const lon = Number(longitude);
+
+	if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+		throw new Error('Coordenadas geográficas inválidas para a consulta de previsão.');
+	}
+
+	const parametros = new URLSearchParams({
+		latitude: String(lat),
+		longitude: String(lon),
+		current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m',
+		daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+		forecast_days: '5',
+		timezone: 'auto'
+	});
+
+	const url = `https://api.open-meteo.com/v1/forecast?${parametros.toString()}`;
+
+	try {
+		const resposta = await fetch(url);
+
+		if (!resposta.ok) {
+			throw new Error(`Falha no serviço meteorológico (HTTP ${resposta.status}).`);
+		}
+
+		const dados = await resposta.json();
+
+		if (!dados || typeof dados !== 'object' || !dados.current || !dados.daily) {
+			throw new Error('Resposta do serviço meteorológico incompleta ou inválida.');
+		}
+
+		return dados;
+	} catch (erro) {
+		console.error('Erro na requisição meteorológica:', erro);
+		throw erro;
+	}
+}
+
+// Chave utilizada para persistência no localStorage
+const CHAVE_FAVORITOS_STORAGE = 'consulta_clima_favoritos';
+
+/**
+ * Gera um identificador único para a localidade com base no ID ou coordenadas
+ * @param {object} local 
+ * @returns {string}
+ */
+function gerarIdLocalidade(local) {
+	if (local.id !== undefined && local.id !== null) {
+		return String(local.id);
+	}
+	const lat = Number(local.latitude).toFixed(4);
+	const lon = Number(local.longitude).toFixed(4);
+	return `${lat}_${lon}`;
+}
+
+/**
+ * Carrega a lista de favoritos salva no navegador
+ * @returns {Array<object>}
+ */
+function carregarFavoritos() {
+	try {
+		const serializado = localStorage.getItem(CHAVE_FAVORITOS_STORAGE);
+		if (!serializado) {
+			return [];
+		}
+		const parsed = JSON.parse(serializado);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		return parsed.filter((item) => (
+			item &&
+			typeof item === 'object' &&
+			typeof item.name === 'string' &&
+			Number.isFinite(Number(item.latitude)) &&
+			Number.isFinite(Number(item.longitude))
+		));
+	} catch (erro) {
+		console.warn('Falha ao ler favoritos do armazenamento:', erro);
+		return [];
+	}
+}
+
+/**
+ * Salva a lista de favoritos no armazenamento local
+ * @param {Array<object>} favoritos 
+ * @returns {boolean}
+ */
+function salvarFavoritos(favoritos) {
+	try {
+		if (!Array.isArray(favoritos)) return false;
+		localStorage.setItem(CHAVE_FAVORITOS_STORAGE, JSON.stringify(favoritos));
+		return true;
+	} catch (erro) {
+		console.error('Falha ao salvar favoritos no armazenamento:', erro);
+		return false;
+	}
+}
+
+/**
+ * Verifica se uma localidade já está salva nos favoritos
+ * @param {object} local 
+ * @returns {boolean}
+ */
+function isLocalidadeFavorita(local) {
+	if (!local) return false;
+	const idAlvo = gerarIdLocalidade(local);
+	const favoritos = carregarFavoritos();
+	return favoritos.some((item) => gerarIdLocalidade(item) === idAlvo);
+}
+
+/**
+ * Adiciona uma cidade à lista de favoritos evitando duplicidades
+ * @param {object} local 
+ * @returns {{ sucesso: boolean, lista: Array<object>, motivo?: string }}
+ */
+function adicionarFavorito(local) {
+	if (!local || !local.name || !Number.isFinite(Number(local.latitude)) || !Number.isFinite(Number(local.longitude))) {
+		return { sucesso: false, lista: carregarFavoritos(), motivo: 'Dados da localidade incompletos.' };
+	}
+
+	const favoritos = carregarFavoritos();
+	const idAlvo = gerarIdLocalidade(local);
+
+	const jaExiste = favoritos.some((item) => gerarIdLocalidade(item) === idAlvo);
+	if (jaExiste) {
+		return { sucesso: false, lista: favoritos, motivo: 'Localidade já está favoritada.' };
+	}
+
+	const novoItem = {
+		id: idAlvo,
+		name: local.name,
+		admin1: local.admin1 || '',
+		admin2: local.admin2 || '',
+		country: local.country || '',
+		latitude: Number(local.latitude),
+		longitude: Number(local.longitude)
+	};
+
+	favoritos.push(novoItem);
+	salvarFavoritos(favoritos);
+	return { sucesso: true, lista: favoritos };
+}
+
+/**
+ * Remove uma cidade da lista de favoritos pelo identificador
+ * @param {string|number} id 
+ * @returns {Array<object>} Lista atualizada
+ */
+function removerFavorito(id) {
+	const idStr = String(id);
+	const favoritos = carregarFavoritos();
+	const atualizados = favoritos.filter((item) => gerarIdLocalidade(item) !== idStr);
+	salvarFavoritos(atualizados);
+	return atualizados;
 }
 
 

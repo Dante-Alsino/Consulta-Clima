@@ -29,9 +29,8 @@
 	</header>
 
 	<main class="app-main">
-		<!-- Painel Lateral: Busca, Feedback Assíncrono, Resultados de Localidades e Favoritos -->
 		<aside class="sidebar" aria-label="Pesquisa e cidades favoritas">
-			<!-- Seção de Pesquisa de Cidades (RF01) -->
+			<!-- Busca de cidades -->
 			<section class="panel" aria-labelledby="titulo-pesquisa">
 				<h2 id="titulo-pesquisa" class="panel__title">Pesquisar Cidade</h2>
 				<form id="form-busca" class="search-form" novalidate>
@@ -57,7 +56,7 @@
 				</form>
 			</section>
 
-			<!-- Área de Feedback Assíncrono: Carregamento, Sucesso e Erro (RF08) -->
+			<!-- Feedback de status -->
 			<div
 				id="status-container"
 				class="status-banner"
@@ -70,7 +69,7 @@
 				<p id="status-mensagem" class="status-banner__text"></p>
 			</div>
 
-			<!-- Área de Resultados da Pesquisa de Localidades (RF01, RF02) -->
+			<!-- Resultados da pesquisa -->
 			<section class="panel" aria-labelledby="titulo-resultados">
 				<h2 id="titulo-resultados" class="panel__title">Localidades Encontradas</h2>
 				<p id="resultados-vazio" class="empty-message">
@@ -79,7 +78,7 @@
 				<ul id="lista-resultados" class="location-list" aria-label="Resultados da pesquisa de cidades"></ul>
 			</section>
 
-			<!-- Área de Cidades Favoritas (RF06, RF07) -->
+			<!-- Cidades favoritas -->
 			<section class="panel" aria-labelledby="titulo-favoritos">
 				<h2 id="titulo-favoritos" class="panel__title">Cidades Favoritas</h2>
 				<p id="favoritos-vazio" class="empty-message">
@@ -89,9 +88,9 @@
 			</section>
 		</aside>
 
-		<!-- Área Principal do Painel Meteorológico (RF03, RF04) -->
+		<!-- Painel meteorológico -->
 		<section class="weather-workspace" id="painel-meteorologico" aria-label="Informações meteorológicas">
-			<!-- Estado Inicial / Vazio (Empty State) -->
+			<!-- Estado inicial -->
 			<div id="clima-inicial" class="empty-state">
 				<p class="empty-state__title">Nenhuma localidade selecionada</p>
 				<p class="empty-state__description">
@@ -99,7 +98,7 @@
 				</p>
 			</div>
 
-			<!-- Painel de Condições Atuais (RF03) -->
+			<!-- Condições atuais -->
 			<article id="painel-atual" class="current-weather" aria-labelledby="titulo-clima-atual" hidden>
 				<header class="current-weather__header">
 					<div class="current-weather__location">
@@ -141,7 +140,7 @@
 				</dl>
 			</article>
 
-			<!-- Seção de Previsão para os Próximos 5 Dias (RF04) -->
+			<!-- Previsão para 5 dias -->
 			<section id="painel-previsao" class="forecast-section" aria-labelledby="titulo-previsao" hidden>
 				<h2 id="titulo-previsao" class="forecast-section__title">Previsão para os próximos 5 dias</h2>
 				<div id="grade-previsao" class="forecast-grid" role="list" aria-label="Previsão do tempo diária para os próximos 5 dias"></div>
