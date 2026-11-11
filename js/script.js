@@ -168,6 +168,51 @@ async function pesquisarCidadesAPI(termo) {
 	}
 }
 
+/**
+ * Consulta as condições atuais e a previsão para os próximos 5 dias
+ * @param {number|string} latitude - Latitude geográfica (-90 a 90)
+ * @param {number|string} longitude - Longitude geográfica (-180 a 180)
+ * @returns {Promise<object>} Objeto com current, current_units, daily, daily_units e timezone
+ */
+async function consultarClimaAPI(latitude, longitude) {
+	const lat = Number(latitude);
+	const lon = Number(longitude);
+
+	if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+		throw new Error('Coordenadas geográficas inválidas para a consulta de previsão.');
+	}
+
+	const parametros = new URLSearchParams({
+		latitude: String(lat),
+		longitude: String(lon),
+		current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m',
+		daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+		forecast_days: '5',
+		timezone: 'auto'
+	});
+
+	const url = `https://api.open-meteo.com/v1/forecast?${parametros.toString()}`;
+
+	try {
+		const resposta = await fetch(url);
+
+		if (!resposta.ok) {
+			throw new Error(`Falha no serviço meteorológico (HTTP ${resposta.status}).`);
+		}
+
+		const dados = await resposta.json();
+
+		if (!dados || typeof dados !== 'object' || !dados.current || !dados.daily) {
+			throw new Error('Resposta do serviço meteorológico incompleta ou inválida.');
+		}
+
+		return dados;
+	} catch (erro) {
+		console.error('Erro na requisição meteorológica:', erro);
+		throw erro;
+	}
+}
+
 
 /**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
