@@ -4,14 +4,7 @@
 
 const CHAVE_TEMA_STORAGE = 'consulta_clima_tema';
 
-/* ==========================================================================
-   CARD 08 — DICIONÁRIO WMO, CONSTANTES E UTILITÁRIOS DE FORMATAÇÃO
-   Requisitos RF03, RF04 e Regra de Negócio 9 (Sem dados fictícios)
-   ========================================================================== */
-
-/**
- * Tabela de códigos WMO oficiais da Open-Meteo, suas descrições e ícones correspondentes
- */
+// Códigos meteorológicos WMO e descrições correspondentes
 const DESCRICOES_CLIMA_WMO = {
 	0: { descricao: 'Céu limpo', icone: '☀️' },
 	1: { descricao: 'Predominantemente limpo', icone: '🌤️' },
@@ -59,10 +52,7 @@ function obterInfoClimaWMO(codigo) {
 }
 
 /**
- * Formata um valor numérico acompanhado de sua unidade oficial da API.
- * Garante que valores ausentes (null, undefined, NaN) sejam apresentados como "Não disponível"
- * sem nunca inventar valores fictícios (Regra de Negócio 9 e Teste 13).
- * 
+ * Formata valor numérico acompanhado de unidade ou fallback caso ausente
  * @param {number|string|null|undefined} valor 
  * @param {string} [unidade='']
  * @returns {string}
@@ -127,6 +117,54 @@ function formatarDataHoraLeitura(isoString, timezone = '') {
 		return `Atualizado em: ${formatador.format(data)}${fusoFormatado}`;
 	} catch {
 		return `Atualizado em: ${isoString}`;
+	}
+}
+/**
+ * Consulta a API de Geocodificação da Open-Meteo para localizar cidades pelo nome
+ * @param {string} termo - Nome da cidade ou região
+ * @returns {Promise<Array<{id: number|string, name: string, admin1: string, admin2: string, country: string, latitude: number, longitude: number}>>}
+ */
+async function pesquisarCidadesAPI(termo) {
+	const termoLimpo = (termo || '').trim();
+	if (!termoLimpo) {
+		return [];
+	}
+
+	const parametros = new URLSearchParams({
+		name: termoLimpo,
+		count: '10',
+		language: 'pt',
+		format: 'json'
+	});
+
+	const url = `https://geocoding-api.open-meteo.com/v1/search?${parametros.toString()}`;
+
+	try {
+		const resposta = await fetch(url);
+
+		if (!resposta.ok) {
+			throw new Error(`Falha no serviço de localização (HTTP ${resposta.status}).`);
+		}
+
+		const dados = await resposta.json();
+
+		if (!dados || !Array.isArray(dados.results)) {
+			return [];
+		}
+
+		// Normaliza os resultados garantindo campos definidos e tipos consistentes
+		return dados.results.map((local) => ({
+			id: local.id ?? `${local.latitude}_${local.longitude}`,
+			name: local.name || '',
+			admin1: local.admin1 || '',
+			admin2: local.admin2 || '',
+			country: local.country || '',
+			latitude: Number(local.latitude),
+			longitude: Number(local.longitude)
+		}));
+	} catch (erro) {
+		console.error('Erro na requisição de geocodificação:', erro);
+		throw erro;
 	}
 }
 
