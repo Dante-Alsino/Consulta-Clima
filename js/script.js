@@ -417,6 +417,158 @@ function limparPainelClima(mostrarEstadoInicial = true) {
 	}
 }
 
+/**
+ * Monta o texto descritivo secundário (região, estado, país e coordenadas) para distinguir cidades homônimas
+ * @param {object} local 
+ * @returns {string}
+ */
+function formatarSubtituloLocalidade(local) {
+	if (!local) return '';
+	const regioes = [];
+	if (local.admin2 && local.admin2 !== local.name) {
+		regioes.push(local.admin2);
+	}
+	if (local.admin1 && local.admin1 !== local.admin2) {
+		regioes.push(local.admin1);
+	}
+	if (local.country) {
+		regioes.push(local.country);
+	}
+
+	const textoRegiao = regioes.join(', ');
+	const lat = Number(local.latitude);
+	const lon = Number(local.longitude);
+
+	if (Number.isFinite(lat) && Number.isFinite(lon)) {
+		const coords = `(${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`;
+		return textoRegiao ? `${textoRegiao} • ${coords}` : coords;
+	}
+
+	return textoRegiao;
+}
+
+/**
+ * Renderiza a lista de cidades retornadas pela pesquisa de geocodificação
+ * @param {Array<object>} locais 
+ * @param {string} [mensagemVazio='Realize uma pesquisa acima para listar as cidades encontradas.']
+ */
+function renderizarResultadosBusca(locais, mensagemVazio = 'Realize uma pesquisa acima para listar as cidades encontradas.') {
+	const listaEl = document.getElementById('lista-resultados');
+	const vazioEl = document.getElementById('resultados-vazio');
+
+	if (!listaEl) return;
+
+	resultadosPesquisaAtuais = Array.isArray(locais) ? locais : [];
+	listaEl.replaceChildren();
+
+	if (resultadosPesquisaAtuais.length === 0) {
+		if (vazioEl) {
+			vazioEl.textContent = mensagemVazio;
+			vazioEl.hidden = false;
+		}
+		return;
+	}
+
+	if (vazioEl) {
+		vazioEl.hidden = true;
+	}
+
+	const fragmento = document.createDocumentFragment();
+
+	resultadosPesquisaAtuais.forEach((local, indice) => {
+		const itemLi = document.createElement('li');
+		itemLi.className = 'location-item';
+
+		const botaoSelecionar = document.createElement('button');
+		botaoSelecionar.type = 'button';
+		botaoSelecionar.className = 'location-item__select';
+		botaoSelecionar.dataset.acao = 'selecionar-resultado';
+		botaoSelecionar.dataset.indice = String(indice);
+
+		const spanNome = document.createElement('span');
+		spanNome.className = 'location-item__name';
+		spanNome.textContent = local.name || 'Localidade sem nome';
+
+		const spanMeta = document.createElement('span');
+		spanMeta.className = 'location-item__meta';
+		spanMeta.textContent = formatarSubtituloLocalidade(local);
+
+		botaoSelecionar.appendChild(spanNome);
+		botaoSelecionar.appendChild(spanMeta);
+		itemLi.appendChild(botaoSelecionar);
+		fragmento.appendChild(itemLi);
+	});
+
+	listaEl.appendChild(fragmento);
+}
+
+/**
+ * Renderiza a lista de cidades favoritas salvas no navegador
+ * @param {Array<object>} [favoritos=carregarFavoritos()]
+ */
+function renderizarFavoritos(favoritos = carregarFavoritos()) {
+	const listaEl = document.getElementById('lista-favoritos');
+	const vazioEl = document.getElementById('favoritos-vazio');
+
+	if (!listaEl) return;
+
+	const listaSegura = Array.isArray(favoritos) ? favoritos : [];
+	listaEl.replaceChildren();
+
+	if (listaSegura.length === 0) {
+		if (vazioEl) {
+			vazioEl.hidden = false;
+		}
+		return;
+	}
+
+	if (vazioEl) {
+		vazioEl.hidden = true;
+	}
+
+	const fragmento = document.createDocumentFragment();
+
+	listaSegura.forEach((local) => {
+		const idLocal = gerarIdLocalidade(local);
+
+		const itemLi = document.createElement('li');
+		itemLi.className = 'location-item';
+
+		const botaoSelecionar = document.createElement('button');
+		botaoSelecionar.type = 'button';
+		botaoSelecionar.className = 'location-item__select';
+		botaoSelecionar.dataset.acao = 'selecionar-favorito';
+		botaoSelecionar.dataset.id = idLocal;
+
+		const spanNome = document.createElement('span');
+		spanNome.className = 'location-item__name';
+		spanNome.textContent = local.name || 'Localidade';
+
+		const spanMeta = document.createElement('span');
+		spanMeta.className = 'location-item__meta';
+		const partesMeta = [local.admin1, local.country].filter(Boolean);
+		spanMeta.textContent = partesMeta.join(', ') || formatarSubtituloLocalidade(local);
+
+		botaoSelecionar.appendChild(spanNome);
+		botaoSelecionar.appendChild(spanMeta);
+
+		const botaoRemover = document.createElement('button');
+		botaoRemover.type = 'button';
+		botaoRemover.className = 'btn btn--delete';
+		botaoRemover.dataset.acao = 'remover-favorito';
+		botaoRemover.dataset.id = idLocal;
+		botaoRemover.setAttribute('aria-label', `Remover ${local.name} dos favoritos`);
+		botaoRemover.title = 'Remover dos favoritos';
+		botaoRemover.textContent = 'Remover';
+
+		itemLi.appendChild(botaoSelecionar);
+		itemLi.appendChild(botaoRemover);
+		fragmento.appendChild(itemLi);
+	});
+
+	listaEl.appendChild(fragmento);
+}
+
 
 /**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
