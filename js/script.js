@@ -737,6 +737,162 @@ function renderizarPrevisaoDiaria(daily, dailyUnits = {}) {
 
 
 /**
+ * Executa a consulta meteorológica completa para uma localidade selecionada
+ * @param {object} local - Objeto da localidade contendo nome, região, país e coordenadas
+ */
+async function selecionarLocalidadeEConsultarClima(local) {
+	if (!local) return;
+
+	const btnBuscar = document.getElementById('btn-buscar');
+
+	// Limpa os dados anteriores imediatamente para evitar confusão visual durante o carregamento
+	limparPainelClima(false);
+	atualizarMensagemEstado(`Carregando condições meteorológicas para ${local.name}...`, 'loading', true);
+
+	if (btnBuscar) btnBuscar.disabled = true;
+
+	try {
+		const dadosClima = await consultarClimaAPI(local.latitude, local.longitude);
+		renderizarClimaAtual(local, dadosClima);
+		renderizarPrevisaoDiaria(dadosClima.daily, dadosClima.daily_units);
+		atualizarMensagemEstado(`Previsão atualizada para ${local.name}.`, 'success', false);
+	} catch (erro) {
+		console.error('Erro ao consultar previsão meteorológica:', erro);
+		limparPainelClima(true);
+		atualizarMensagemEstado(
+			'Não foi possível consultar os dados meteorológicos desta localidade. Verifique sua conexão e tente novamente.',
+			'error',
+			false
+		);
+	} finally {
+		if (btnBuscar) btnBuscar.disabled = false;
+	}
+}
+
+/**
+ * Trata o envio do formulário de pesquisa de cidades com validação e controle de concorrência
+ * @param {SubmitEvent} evento 
+ */
+async function processarSubmissaoBusca(evento) {
+	evento.preventDefault();
+
+	const inputCidade = document.getElementById('input-cidade');
+	const btnBuscar = document.getElementById('btn-buscar');
+
+	if (!inputCidade) return;
+
+	const termo = inputCidade.value.trim();
+
+	if (!termo) {
+		inputCidade.value = '';
+		inputCidade.focus();
+		atualizarMensagemEstado('Informe o nome de uma cidade válida para realizar a pesquisa.', 'warning', false);
+		return;
+	}
+
+	if (btnBuscar) btnBuscar.disabled = true;
+	atualizarMensagemEstado(`Pesquisando localidades para "${termo}"...`, 'loading', true);
+
+	try {
+		const locais = await pesquisarCidadesAPI(termo);
+
+		if (locais.length === 0) {
+			renderizarResultadosBusca([], 'Nenhuma localidade encontrada para a pesquisa informada.');
+			atualizarMensagemEstado(
+				`Nenhum resultado encontrado para "${termo}". Verifique a grafia e tente novamente.`,
+				'warning',
+				false
+			);
+			return;
+		}
+
+		renderizarResultadosBusca(locais);
+		atualizarMensagemEstado(
+			`${locais.length} localidade(s) encontrada(s). Selecione a cidade desejada na lista de resultados.`,
+			'info',
+			false
+		);
+	} catch (erro) {
+		console.error('Erro na pesquisa de cidades:', erro);
+		renderizarResultadosBusca([], 'Não foi possível carregar os resultados da pesquisa.');
+		atualizarMensagemEstado(
+			'Falha ao pesquisar localidades. Verifique sua conexão com a internet e tente novamente.',
+			'error',
+			false
+		);
+	} finally {
+		if (btnBuscar) btnBuscar.disabled = false;
+	}
+}
+
+/**
+ * Configura os ouvintes de eventos do formulário, botões e listas com delegação de eventos
+ */
+function configurarEventosInterface() {
+	const formBusca = document.getElementById('form-busca');
+	const listaResultados = document.getElementById('lista-resultados');
+	const listaFavoritos = document.getElementById('lista-favoritos');
+	const btnFavoritar = document.getElementById('btn-favoritar');
+
+	if (formBusca) {
+		formBusca.addEventListener('submit', processarSubmissaoBusca);
+	}
+
+	if (listaResultados) {
+		listaResultados.addEventListener('click', (evento) => {
+			const botao = evento.target.closest('button[data-acao="selecionar-resultado"]');
+			if (!botao) return;
+
+			const indice = Number.parseInt(botao.dataset.indice, 10);
+			const localSelecionado = resultadosPesquisaAtuais[indice];
+
+			if (localSelecionado) {
+				selecionarLocalidadeEConsultarClima(localSelecionado);
+			}
+		});
+	}
+
+	if (listaFavoritos) {
+		listaFavoritos.addEventListener('click', (evento) => {
+			const botao = evento.target.closest('button[data-acao]');
+			if (!botao) return;
+
+			const acao = botao.dataset.acao;
+			const idAlvo = botao.dataset.id;
+			if (!idAlvo) return;
+
+			if (acao === 'selecionar-favorito') {
+				const favoritos = carregarFavoritos();
+				const favoritoSelecionado = favoritos.find((item) => gerarIdLocalidade(item) === idAlvo);
+				if (favoritoSelecionado) {
+					selecionarLocalidadeEConsultarClima(favoritoSelecionado);
+				}
+			} else if (acao === 'remover-favorito') {
+				const listaAtualizada = removerFavorito(idAlvo);
+				renderizarFavoritos(listaAtualizada);
+				atualizarBotaoFavoritar(localidadeSelecionada);
+				atualizarMensagemEstado('Localidade removida dos favoritos.', 'info', false);
+			}
+		});
+	}
+
+	if (btnFavoritar) {
+		btnFavoritar.addEventListener('click', () => {
+			if (!localidadeSelecionada) return;
+
+			const resultado = adicionarFavorito(localidadeSelecionada);
+			if (resultado.sucesso) {
+				renderizarFavoritos(resultado.lista);
+				atualizarBotaoFavoritar(localidadeSelecionada);
+				atualizarMensagemEstado(`${localidadeSelecionada.name} foi adicionada aos favoritos.`, 'success', false);
+			} else if (resultado.motivo) {
+				atualizarMensagemEstado(resultado.motivo, 'warning', false);
+			}
+		});
+	}
+}
+
+/**
  * Inicializa e gerencia a alternância entre modo escuro e modo claro (white mode)
  */
 function inicializarGerenciadorTema() {
@@ -778,9 +934,17 @@ function inicializarGerenciadorTema() {
 	}
 }
 
-// Inicializa o tema assim que a árvore do DOM estiver pronta
-if (document.readyState === 'loading') {
-	document.addEventListener('DOMContentLoaded', inicializarGerenciadorTema);
-} else {
+/**
+ * Ponto de entrada principal da aplicação
+ */
+function inicializarAplicacao() {
 	inicializarGerenciadorTema();
+	renderizarFavoritos();
+	configurarEventosInterface();
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', inicializarAplicacao);
+} else {
+	inicializarAplicacao();
 }
