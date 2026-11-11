@@ -1,8 +1,8 @@
-/**
- * Consulta Meteorológica - Gerenciamento de Tema (Dark / White Mode)
- */
+(() => {
+'use strict';
 
 const CHAVE_TEMA_STORAGE = 'consulta_clima_tema';
+const CHAVE_FAVORITOS_STORAGE = 'consulta_clima_favoritos';
 
 // Códigos meteorológicos WMO e descrições correspondentes
 const DESCRICOES_CLIMA_WMO = {
@@ -37,6 +37,21 @@ const DESCRICOES_CLIMA_WMO = {
 };
 
 /**
+ * Converte uma coordenada para número finito rejeitando strings vazias, nulos e booleanos
+ * @param {unknown} valor
+ * @returns {number}
+ */
+function parseCoordenada(valor) {
+	if (valor === null || valor === undefined || typeof valor === 'boolean') {
+		return Number.NaN;
+	}
+	if (typeof valor === 'string' && valor.trim() === '') {
+		return Number.NaN;
+	}
+	return Number(valor);
+}
+
+/**
  * Retorna as informações legíveis e o ícone de um código meteorológico WMO
  * @param {number|null|undefined} codigo - Código WMO numérico retornado pela API
  * @returns {{ descricao: string, icone: string }}
@@ -58,7 +73,7 @@ function obterInfoClimaWMO(codigo) {
  * @returns {string}
  */
 function formatarValorComUnidade(valor, unidade = '') {
-	if (valor === null || valor === undefined || valor === '' || Number.isNaN(Number(valor))) {
+	if (valor === null || valor === undefined || valor === '' || typeof valor === 'boolean' || Number.isNaN(Number(valor))) {
 		return 'Não disponível';
 	}
 	const sufixo = unidade ? ` ${unidade}` : '';
@@ -66,17 +81,21 @@ function formatarValorComUnidade(valor, unidade = '') {
 }
 
 /**
- * Converte uma data no formato ISO YYYY-MM-DD para string legível curta em pt-BR (ex: "seg., 29/10")
+ * Converte uma data no formato ISO YYYY-MM-DD para string legível curta em pt-BR (ex: "Seg., 29/10")
  * @param {string} dataIsoString - Data em formato 'YYYY-MM-DD'
  * @returns {string}
  */
 function formatarDataPrevisao(dataIsoString) {
-	if (!dataIsoString) return 'Data não disponível';
+	if (typeof dataIsoString !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dataIsoString)) {
+		return 'Data não disponível';
+	}
 	try {
 		// Divide YYYY-MM-DD para instanciar a data local sem distorção de fuso UTC
 		const [ano, mes, dia] = dataIsoString.split('-').map(Number);
-		if (!ano || !mes || !dia) return dataIsoString;
 		const data = new Date(ano, mes - 1, dia);
+		if (Number.isNaN(data.getTime())) {
+			return 'Data não disponível';
+		}
 
 		const formatador = new Intl.DateTimeFormat('pt-BR', {
 			weekday: 'short',
@@ -84,7 +103,6 @@ function formatarDataPrevisao(dataIsoString) {
 			month: '2-digit'
 		});
 
-		// Capitaliza a primeira letra do dia da semana
 		const partes = formatador.format(data);
 		return partes.charAt(0).toUpperCase() + partes.slice(1);
 	} catch (erro) {
@@ -119,6 +137,7 @@ function formatarDataHoraLeitura(isoString, timezone = '') {
 		return `Atualizado em: ${isoString}`;
 	}
 }
+
 /**
  * Consulta a API de Geocodificação da Open-Meteo para localizar cidades pelo nome
  * @param {string} termo - Nome da cidade ou região
@@ -159,8 +178,8 @@ async function pesquisarCidadesAPI(termo) {
 			admin1: local.admin1 || '',
 			admin2: local.admin2 || '',
 			country: local.country || '',
-			latitude: Number(local.latitude),
-			longitude: Number(local.longitude)
+			latitude: parseCoordenada(local.latitude),
+			longitude: parseCoordenada(local.longitude)
 		}));
 	} catch (erro) {
 		console.error('Erro na requisição de geocodificação:', erro);
@@ -175,8 +194,8 @@ async function pesquisarCidadesAPI(termo) {
  * @returns {Promise<object>} Objeto com current, current_units, daily, daily_units e timezone
  */
 async function consultarClimaAPI(latitude, longitude) {
-	const lat = Number(latitude);
-	const lon = Number(longitude);
+	const lat = parseCoordenada(latitude);
+	const lon = parseCoordenada(longitude);
 
 	if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
 		throw new Error('Coordenadas geográficas inválidas para a consulta de previsão.');
@@ -213,21 +232,24 @@ async function consultarClimaAPI(latitude, longitude) {
 	}
 }
 
-// Chave utilizada para persistência no localStorage
-const CHAVE_FAVORITOS_STORAGE = 'consulta_clima_favoritos';
-
 /**
  * Gera um identificador único para a localidade com base no ID ou coordenadas
  * @param {object} local 
  * @returns {string}
  */
 function gerarIdLocalidade(local) {
-	if (local.id !== undefined && local.id !== null) {
-		return String(local.id);
+	if (!local || typeof local !== 'object') {
+		return '';
 	}
-	const lat = Number(local.latitude).toFixed(4);
-	const lon = Number(local.longitude).toFixed(4);
-	return `${lat}_${lon}`;
+	if (local.id !== undefined && local.id !== null && String(local.id).trim() !== '') {
+		return String(local.id).trim();
+	}
+	const lat = parseCoordenada(local.latitude);
+	const lon = parseCoordenada(local.longitude);
+	if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+		return '';
+	}
+	return `${lat.toFixed(4)}_${lon.toFixed(4)}`;
 }
 
 /**
@@ -248,8 +270,9 @@ function carregarFavoritos() {
 			item &&
 			typeof item === 'object' &&
 			typeof item.name === 'string' &&
-			Number.isFinite(Number(item.latitude)) &&
-			Number.isFinite(Number(item.longitude))
+			item.name.trim() !== '' &&
+			Number.isFinite(parseCoordenada(item.latitude)) &&
+			Number.isFinite(parseCoordenada(item.longitude))
 		));
 	} catch (erro) {
 		console.warn('Falha ao ler favoritos do armazenamento:', erro);
@@ -281,6 +304,7 @@ function salvarFavoritos(favoritos) {
 function isLocalidadeFavorita(local) {
 	if (!local) return false;
 	const idAlvo = gerarIdLocalidade(local);
+	if (!idAlvo) return false;
 	const favoritos = carregarFavoritos();
 	return favoritos.some((item) => gerarIdLocalidade(item) === idAlvo);
 }
@@ -291,7 +315,10 @@ function isLocalidadeFavorita(local) {
  * @returns {{ sucesso: boolean, lista: Array<object>, motivo?: string }}
  */
 function adicionarFavorito(local) {
-	if (!local || !local.name || !Number.isFinite(Number(local.latitude)) || !Number.isFinite(Number(local.longitude))) {
+	const lat = parseCoordenada(local?.latitude);
+	const lon = parseCoordenada(local?.longitude);
+
+	if (!local || !local.name || !Number.isFinite(lat) || !Number.isFinite(lon)) {
 		return { sucesso: false, lista: carregarFavoritos(), motivo: 'Dados da localidade incompletos.' };
 	}
 
@@ -309,12 +336,21 @@ function adicionarFavorito(local) {
 		admin1: local.admin1 || '',
 		admin2: local.admin2 || '',
 		country: local.country || '',
-		latitude: Number(local.latitude),
-		longitude: Number(local.longitude)
+		latitude: lat,
+		longitude: lon
 	};
 
 	favoritos.push(novoItem);
-	salvarFavoritos(favoritos);
+	const persistido = salvarFavoritos(favoritos);
+
+	if (!persistido) {
+		return {
+			sucesso: false,
+			lista: carregarFavoritos(),
+			motivo: 'Não foi possível salvar nos favoritos do navegador.'
+		};
+	}
+
 	return { sucesso: true, lista: favoritos };
 }
 
@@ -436,8 +472,8 @@ function formatarSubtituloLocalidade(local) {
 	}
 
 	const textoRegiao = regioes.join(', ');
-	const lat = Number(local.latitude);
-	const lon = Number(local.longitude);
+	const lat = parseCoordenada(local.latitude);
+	const lon = parseCoordenada(local.longitude);
 
 	if (Number.isFinite(lat) && Number.isFinite(lon)) {
 		const coords = `(${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`;
@@ -736,6 +772,8 @@ function renderizarPrevisaoDiaria(daily, dailyUnits = {}) {
 }
 
 
+let idRequisicaoClimaAtiva = 0;
+
 /**
  * Executa a consulta meteorológica completa para uma localidade selecionada
  * @param {object} local - Objeto da localidade contendo nome, região, país e coordenadas
@@ -743,6 +781,7 @@ function renderizarPrevisaoDiaria(daily, dailyUnits = {}) {
 async function selecionarLocalidadeEConsultarClima(local) {
 	if (!local) return;
 
+	const idRequisicaoAtual = ++idRequisicaoClimaAtiva;
 	const btnBuscar = document.getElementById('btn-buscar');
 
 	// Limpa os dados anteriores imediatamente para evitar confusão visual durante o carregamento
@@ -753,10 +792,14 @@ async function selecionarLocalidadeEConsultarClima(local) {
 
 	try {
 		const dadosClima = await consultarClimaAPI(local.latitude, local.longitude);
+		if (idRequisicaoAtual !== idRequisicaoClimaAtiva) return;
+
 		renderizarClimaAtual(local, dadosClima);
 		renderizarPrevisaoDiaria(dadosClima.daily, dadosClima.daily_units);
 		atualizarMensagemEstado(`Previsão atualizada para ${local.name}.`, 'success', false);
 	} catch (erro) {
+		if (idRequisicaoAtual !== idRequisicaoClimaAtiva) return;
+
 		console.error('Erro ao consultar previsão meteorológica:', erro);
 		limparPainelClima(true);
 		atualizarMensagemEstado(
@@ -765,7 +808,9 @@ async function selecionarLocalidadeEConsultarClima(local) {
 			false
 		);
 	} finally {
-		if (btnBuscar) btnBuscar.disabled = false;
+		if (idRequisicaoAtual === idRequisicaoClimaAtiva && btnBuscar) {
+			btnBuscar.disabled = false;
+		}
 	}
 }
 
@@ -839,22 +884,28 @@ function configurarEventosInterface() {
 	}
 
 	if (listaResultados) {
-		listaResultados.addEventListener('click', (evento) => {
-			const botao = evento.target.closest('button[data-acao="selecionar-resultado"]');
+		listaResultados.addEventListener('click', async (evento) => {
+			const alvo = evento.target;
+			if (!alvo || typeof alvo.closest !== 'function') return;
+
+			const botao = alvo.closest('button[data-acao="selecionar-resultado"]');
 			if (!botao) return;
 
 			const indice = Number.parseInt(botao.dataset.indice, 10);
 			const localSelecionado = resultadosPesquisaAtuais[indice];
 
 			if (localSelecionado) {
-				selecionarLocalidadeEConsultarClima(localSelecionado);
+				await selecionarLocalidadeEConsultarClima(localSelecionado);
 			}
 		});
 	}
 
 	if (listaFavoritos) {
-		listaFavoritos.addEventListener('click', (evento) => {
-			const botao = evento.target.closest('button[data-acao]');
+		listaFavoritos.addEventListener('click', async (evento) => {
+			const alvo = evento.target;
+			if (!alvo || typeof alvo.closest !== 'function') return;
+
+			const botao = alvo.closest('button[data-acao]');
 			if (!botao) return;
 
 			const acao = botao.dataset.acao;
@@ -865,7 +916,7 @@ function configurarEventosInterface() {
 				const favoritos = carregarFavoritos();
 				const favoritoSelecionado = favoritos.find((item) => gerarIdLocalidade(item) === idAlvo);
 				if (favoritoSelecionado) {
-					selecionarLocalidadeEConsultarClima(favoritoSelecionado);
+					await selecionarLocalidadeEConsultarClima(favoritoSelecionado);
 				}
 			} else if (acao === 'remover-favorito') {
 				const listaAtualizada = removerFavorito(idAlvo);
@@ -902,8 +953,12 @@ function inicializarGerenciadorTema() {
 
 	if (!btnTema) return;
 
-	// Recupera tema salvo ou prefere dark como padrão da aplicação
-	const temaSalvo = localStorage.getItem(CHAVE_TEMA_STORAGE);
+	let temaSalvo = null;
+	try {
+		temaSalvo = localStorage.getItem(CHAVE_TEMA_STORAGE);
+	} catch (erro) {
+		console.warn('Não foi possível ler o tema do localStorage:', erro);
+	}
 	const temaAtual = temaSalvo || 'dark';
 
 	aplicarTema(temaAtual);
@@ -948,3 +1003,4 @@ if (document.readyState === 'loading') {
 } else {
 	inicializarAplicacao();
 }
+})();

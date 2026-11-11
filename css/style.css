@@ -129,6 +129,10 @@
 	padding: 0;
 }
 
+[hidden] {
+	display: none !important;
+}
+
 html {
 	font-family: var(--font-sans);
 	font-size: 100%;
@@ -819,7 +823,6 @@ input:disabled {
 	opacity: 0.6;
 	cursor: not-allowed !important;
 	filter: grayscale(20%);
-	pointer-events: none;
 }
 
 /* Otimização de Performance para Animações e Transições */
